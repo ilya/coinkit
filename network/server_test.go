@@ -6,6 +6,7 @@ import (
 	"log"
 	"testing"
 	"time"
+	"net"
 
 	"coinkit/currency"
 	"coinkit/util"
@@ -182,6 +183,15 @@ func sendString(address *Address, s string) error {
 	c.conn.SetReadDeadline(time.Now().Add(100 * time.Millisecond))
 	fmt.Fprintf(c.conn, s)
 	_, err := util.ReadSignedMessage(c.conn)
+
+	switch err2 := err.(type) {
+	case net.Error:
+		// Very rarely the client timeout happens before the server
+		// is able to hang up in time. We can just treat it the same.
+		if err2.Timeout() {
+			return io.EOF
+		}
+	}
 	return err
 }
 
